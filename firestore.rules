@@ -1,0 +1,100 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation for User Entity
+    function isValidUser(data) {
+      return data.keys().hasAll(['userId', 'name', 'class', 'department', 'totalScore', 'lastCompletedQuizId', 'createdAt'])
+        && data.keys().size() == 7
+        && data.userId is string && data.userId.size() <= 128
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 200
+        && data.class is string && data.class.size() > 0 && data.class.size() <= 200
+        && data.department is string && data.department.size() > 0 && data.department.size() <= 200
+        && (data.totalScore is int || data.totalScore is float)
+        && data.lastCompletedQuizId is string && data.lastCompletedQuizId.size() <= 128
+        && (data.createdAt is timestamp || data.createdAt != null);
+    }
+
+    // Validation for Submission Entity
+    function isValidSubmission(data) {
+      return data.keys().hasAll(['submissionId', 'userId', 'activityId', 'score', 'answers', 'submittedAt'])
+        && data.keys().size() == 6
+        && data.submissionId is string && data.submissionId.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.activityId is string && data.activityId.size() <= 128
+        && data.score is int && data.score >= 0
+        && data.answers is list && data.answers.size() >= 0 && data.answers.size() <= 50
+        && data.submittedAt != null;
+    }
+
+    // users collection matching
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId)
+                    && request.auth.token.email_verified == true
+                    && isValidId(userId)
+                    && isValidUser(incoming())
+                    && incoming().userId == userId
+                    && incoming().totalScore == 0
+                    && incoming().lastCompletedQuizId == ""
+                    && (incoming().createdAt == request.time || incoming().createdAt is timestamp);
+                    
+      allow update: if isOwner(userId)
+                    && request.auth.token.email_verified == true
+                    && isValidId(userId)
+                    && isValidUser(incoming())
+                    && incoming().userId == userId
+                    && incoming().createdAt == existing().createdAt
+                    && (
+                      // Scenario A: Profile edits (name, class, department update, score and quiz ID cannot change)
+                      (incoming().totalScore == existing().totalScore
+                       && incoming().lastCompletedQuizId == existing().lastCompletedQuizId
+                       && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'class', 'department']))
+                      ||
+                      // Scenario B: Atomic quiz score update via batch (score increase must match submission score)
+                      (incoming().totalScore == existing().totalScore + getAfter(/databases/$(database)/documents/submissions/$(userId + "_" + incoming().lastCompletedQuizId)).data.score
+                       && incoming().lastCompletedQuizId != existing().lastCompletedQuizId
+                       && incoming().diff(existing()).affectedKeys().hasOnly(['totalScore', 'lastCompletedQuizId']))
+                    );
+      allow delete: if false;
+    }
+
+    // submissions collection matching
+    match /submissions/{submissionId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+                    && request.auth.token.email_verified == true
+                    && isValidId(submissionId)
+                    && isValidSubmission(incoming())
+                    && incoming().userId == request.auth.uid
+                    && submissionId == request.auth.uid + "_" + incoming().activityId
+                    && (incoming().submittedAt == request.time || incoming().submittedAt is timestamp);
+      allow update, delete: if false;
+    }
+  }
+}

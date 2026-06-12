@@ -1,0 +1,11 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Configure Netlify redirects for SPA (Single Page Application) routing
+# This ensures that even if client-side or nested paths are used,
+# Netlify will redirect traffic back to index.html for React/Vite to resolve.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

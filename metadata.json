@@ -1,0 +1,6 @@
+{
+  "name": "Library Reading Challenge",
+  "description": "An interactive reading challenge game with activities, leaderboard, and student profiles.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

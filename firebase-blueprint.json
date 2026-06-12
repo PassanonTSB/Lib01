@@ -1,0 +1,97 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Student profile stored after login",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The unique user identifier from Firebase Authentication"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the student"
+        },
+        "class": {
+          "type": "string",
+          "description": "Class/Grade of the student"
+        },
+        "department": {
+          "type": "string",
+          "description": "Department of the student"
+        },
+        "totalScore": {
+          "type": "integer",
+          "description": "Total score points accumulated by the student"
+        },
+        "lastCompletedQuizId": {
+          "type": "string",
+          "description": "ID of the last completed quiz activity"
+        },
+        "createdAt": {
+          "type": "object",
+          "description": "Timestamp indicating when the profile was created"
+        }
+      },
+      "required": [
+        "userId",
+        "name",
+        "class",
+        "department",
+        "totalScore",
+        "lastCompletedQuizId",
+        "createdAt"
+      ]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "Student activity/quiz submission",
+      "type": "object",
+      "properties": {
+        "submissionId": {
+          "type": "string",
+          "description": "Unique identifier of the submission"
+        },
+        "userId": {
+          "type": "string",
+          "description": "ID of the user who completed the quiz"
+        },
+        "activityId": {
+          "type": "string",
+          "description": "ID of the reading activity/quiz"
+        },
+        "score": {
+          "type": "integer",
+          "description": "Score achieved in the quiz"
+        },
+        "answers": {
+          "type": "array",
+          "description": "Array of student selected answers"
+        },
+        "submittedAt": {
+          "type": "object",
+          "description": "Timestamp indicating when the quiz was submitted"
+        }
+      },
+      "required": [
+        "submissionId",
+        "userId",
+        "activityId",
+        "score",
+        "answers",
+        "submittedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Collection of signed up student users and their attributes"
+    },
+    "submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "Collection of student quiz submissions"
+    }
+  }
+}
